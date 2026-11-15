@@ -1,16 +1,46 @@
 
 import joblib
 import pandas as pd
+import gdown
 
 from pathlib import Path
 
-# Load the trained model once
 BASE_DIR = Path(__file__).resolve().parent.parent
 MODEL_PATH = BASE_DIR / "models" / "random_forest_model.pkl"
 
+# Google Drive model file
+GOOGLE_DRIVE_FILE_ID = "1TjV8PypIt-L01YiM22SFws5TeFXwDcSF"
+
+
+def ensure_model_exists():
+    """Download the ML model if it is not already available."""
+
+    if MODEL_PATH.exists():
+        print("ML model already exists. Loading locally...")
+        return
+
+    print("Downloading Random Forest model from Google Drive...")
+
+    MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    downloaded_file = gdown.download(
+        id=GOOGLE_DRIVE_FILE_ID,
+        output=str(MODEL_PATH),
+        quiet=False
+    )
+
+    if not downloaded_file or not MODEL_PATH.exists():
+        raise RuntimeError("Failed to download the Random Forest model.")
+
+    print("Model downloaded successfully.")
+
+
+# Download model if required, then load it
+ensure_model_exists()
 model = joblib.load(MODEL_PATH)
 
-# Keep the exact feature order used during training
+print("Random Forest model loaded successfully.")
+
 FEATURES = [
     "temp",
     "rain_1h",
@@ -21,16 +51,12 @@ FEATURES = [
     "month"
 ]
 
-# Training-data congestion thresholds
 LOW_THRESHOLD = 2158
 MODERATE_THRESHOLD = 4547
 
 
 def predict_traffic(date, hour, temp_c, rain_1h, snow_1h, clouds_all):
-    # Convert Celsius to Kelvin because the dataset stores temperature in Kelvin
     temp_kelvin = temp_c + 273.15
-
-    # Convert date into the features used during training
     day_of_week = date.weekday()
     month = date.month
 
